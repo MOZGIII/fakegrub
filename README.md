@@ -5,6 +5,13 @@ Generate a fake `grub.cfg` with minimal content to be picked up by a real GRUB's
 environment when the real system GRUB is managed by other OS, and installing
 GRUB just to manage the configs is undesirable.
 
+## Requirements
+
+- bash
+- cat
+- xargs
+- perl
+
 ## Installation
 
 Currently only source installation method is available.
