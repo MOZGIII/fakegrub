@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euo pipefail
+
+err() {
+  echo "$@" >&2
+}
+
+BOOT_PATH="${BOOT_PATH:-"/boot"}"
+GRUB_CFG_PATH="${GRUB_CFG_PATH:-"$BOOT_PATH/grub/grub.cfg"}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd )"
+FAKEGRUB_MKCONFIG_EXEC="${FAKEGRUB_MKCONFIG_EXEC:-"$SCRIPT_DIR/fakegrub-mkconfig"}"
+
+# Check that directory exists.
+{
+  GRUB_CFG_DIR="$(dirname "$GRUB_CFG_PATH")"
+  if [[ ! -d "$GRUB_CFG_DIR" ]]; then
+    err "Error: $GRUB_CFG_DIR is not exists or is not a directory"
+    exit 1
+  fi
+}
+
+contains_single_menuentry() {
+  perl -0777 -ne "exit 1 if not /\Amenuentry\s+'[^']+'\s+{[^}]+}\Z/m" "$@"
+}
+
+# Check that there's either no grub.cfg, or it is safe to overwrite.
+if [[ -e "$GRUB_CFG_PATH" ]] && ! contains_single_menuentry "$GRUB_CFG_PATH"; then
+  err "Error: $GRUB_CFG_PATH exists and does not look like it's created by fakegrub, aborting"
+  exit 2
+fi
+
+"$FAKEGRUB_MKCONFIG_EXEC" > "$GRUB_CFG_PATH"

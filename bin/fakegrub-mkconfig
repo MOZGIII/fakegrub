@@ -1,0 +1,50 @@
+#!/bin/bash
+set -euo pipefail
+
+err() {
+  echo "$@" >&2
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd )"
+FAKEGRUB_GENERATE_EXEC="${FAKEGRUB_GENERATE_EXEC:-"$SCRIPT_DIR/fakegrub-generate"}"
+
+FAKEGRUB_CONFIG="${FAKEGRUB_CONFIG:-"/etc/fakegrub"}"
+
+if [[ -e "$FAKEGRUB_CONFIG" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$FAKEGRUB_CONFIG"
+  set +a
+else
+  err "Warning: $FAKEGRUB_CONFIG does not exist, using default settings"
+fi
+
+# Assign default menuentry name if it's not set.
+MENUENTRY_NAME="${MENUENTRY_NAME:-"FakeGRUB"}"
+
+is_array() {
+  declare -p "$1" 2> /dev/null | grep -q '^declare \-a'
+}
+
+parse_kargs_to_array() {
+  KARGS=()
+  while IFS= read -r -d ''; do
+    KARGS+=( "$REPLY" )
+  done < <(xargs printf '%s\0' <<< "$1")
+}
+
+# Enforce using array variables for KARGS, disallow use of env vars there.
+if [[ ! -v "KARGS" ]]; then
+  err "Warning: \$KARGS is empty, it's recommended to specify at least"
+  err "         \"root=...\" kernel argument, otherwise system might"
+  err "         not be able to boot properly"
+  KARGS=()
+elif ! is_array "KARGS"; then
+  err "Warning: \$KARGS is set but it's not an array, we'll attempt"
+  err "         best-effort parsing, but it's recommended to set it"
+  err "         as a proper bash array at $FAKEGRUB_CONFIG"
+  # shellcheck disable=SC2128
+  parse_kargs_to_array "$KARGS"
+fi
+
+exec "$FAKEGRUB_GENERATE_EXEC" "$MENUENTRY_NAME" "${KARGS[@]}"

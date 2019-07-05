@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 MENUENTRY_NAME [KERNEL_ARGS...]" >&2
+  exit 1
+fi
+
+MENUENTRY_NAME="$1"; shift
+
+BOOT_IMAGE="${LINUX:-"/vmlinuz"}"
+INITRD="${INITRD:-"/initrd.img"}"
+KARGS=( "$@" )
+
+COMMAND="$BOOT_IMAGE"
+for KARG in "${KARGS[@]}"; do
+  COMMAND="$COMMAND \"$KARG\""
+done
+
+cat <<CFG
+menuentry '$MENUENTRY_NAME' {
+  linux $COMMAND
+  initrd $INITRD
+}
+CFG

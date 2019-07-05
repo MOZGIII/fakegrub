@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+
+# Get current kernel cmdline.
+CMDLINE_STRING="$(cat "/proc/cmdline")"
+
+# Parse cmdline into array.
+CMDLINE_ARRAY=()
+while IFS= read -r -d ''; do
+  CMDLINE_ARRAY+=( "$REPLY" )
+done < <(xargs printf '%s\0' <<<"$CMDLINE_STRING")
+
+# Format array.
+CMDLINE_OUTPUT="("
+for ITEM in "${CMDLINE_ARRAY[@]}"; do
+  CMDLINE_OUTPUT="$(printf "%s\n  %q\n" "$CMDLINE_OUTPUT" "$ITEM")"
+done
+CMDLINE_OUTPUT="$(printf "%s\n)" "$CMDLINE_OUTPUT")"
+
+cat <<SETTINGS
+KARGS=$CMDLINE_OUTPUT
+SETTINGS
